@@ -1,18 +1,9 @@
 {
     "version": 2,
-    "env": {
-        "ARCJET_ENV": "production"
-    },
-    "builds": [
+    "rewrites": [
         {
-            "src": "server.js",
-            "use": "@vercel/node"
-        }
-    ],
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "server.js"
+            "source": "/(.*)",
+            "destination": "/api"
         }
     ]
 }

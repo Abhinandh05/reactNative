@@ -1,18 +1,20 @@
-import arcjet, { shield, detectBot, tokenBucket, slidingWindow } from "@arcjet/node";
+import arcjet, { detectBot, shield, slidingWindow, tokenBucket } from "@arcjet/node";
 
-// Base Arcjet instance
-export const aj = arcjet({
+// Check if Arcjet is enabled
+const isArcjetEnabled = !!process.env.ARCJET_KEY;
+const isDevelopment = process.env.ARCJET_ENV !== 'production';
+
+// Base Arcjet instance - only if key is provided
+export const aj = isArcjetEnabled ? arcjet({
     key: process.env.ARCJET_KEY,
     characteristics: ["ip.src"],
     rules: [
         shield({ mode: "LIVE" }),
     ],
-});
-
-const isDevelopment = process.env.ARCJET_ENV !== 'production';
+}) : null;
 
 // Registration protection - Dual layer (IP + prevents duplicate emails)
-export const registrationProtection = aj.withRule(
+export const registrationProtection = isArcjetEnabled ? aj.withRule(
     detectBot({
         mode: "LIVE",
         allow: isDevelopment ? [
@@ -29,10 +31,10 @@ export const registrationProtection = aj.withRule(
         max: 10, // Allow 10 registrations per hour per IP
         characteristics: ["ip.src"]
     })
-);
+) : null;
 
 // Login protection - DUAL TRACKING
-export const loginProtection = aj.withRule(
+export const loginProtection = isArcjetEnabled ? aj.withRule(
     detectBot({
         mode: "LIVE",
         allow: isDevelopment ? [
@@ -57,10 +59,10 @@ export const loginProtection = aj.withRule(
         max: 20,
         characteristics: ["ip.src"]
     })
-);
+) : null;
 
 // OTP protection - DUAL TRACKING (UserId + IP)
-export const otpProtection = aj.withRule(
+export const otpProtection = isArcjetEnabled ? aj.withRule(
     detectBot({
         mode: "LIVE",
         allow: isDevelopment ? [
@@ -85,10 +87,10 @@ export const otpProtection = aj.withRule(
         capacity: 15,
         characteristics: ["ip.src"]
     })
-);
+) : null;
 
 
-export const passwordResetProtection = aj.withRule(
+export const passwordResetProtection = isArcjetEnabled ? aj.withRule(
     detectBot({
         mode: "LIVE",
         allow: isDevelopment ? [
@@ -111,10 +113,10 @@ export const passwordResetProtection = aj.withRule(
         max: 15,
         characteristics: ["ip.src"]
     })
-);
+) : null;
 
 
-export const apiProtection = aj.withRule(
+export const apiProtection = isArcjetEnabled ? aj.withRule(
     detectBot({
         mode: "LIVE",
         allow: [
@@ -137,4 +139,4 @@ export const apiProtection = aj.withRule(
         capacity: 200,
         characteristics: ["ip.src"]
     })
-);
+) : null;

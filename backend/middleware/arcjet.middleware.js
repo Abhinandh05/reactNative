@@ -1,5 +1,10 @@
 export const createArcjetMiddleware = (protection) => {
     return async (req, res, next) => {
+        // Skip if Arcjet is not configured
+        if (!protection) {
+            return next();
+        }
+
         // Bypass Arcjet protection in non-production environments or when running on localhost
         // This makes local development and automated testing possible without being blocked by the
         // protection service. In production, protection remains enabled.
