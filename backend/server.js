@@ -1,15 +1,15 @@
-import express from 'express';
-import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import dotenv from 'dotenv';
+import express from 'express';
 import { connectDB } from './config/database.js';
-import userRoute from './user/user.route.js';
+import { swaggerSpec, swaggerUi } from "./config/swagger.js";
 import courseRoute from "./course/course.route.js";
-import lectureRoute from "./lecture/lecture.route.js";
-import { swaggerUi, swaggerSpec } from "./config/swagger.js";
-import {globalLimiter} from "./middleware/rateLimit.js";
-import userFormRoutes from "./userForm/userForm.route.js";
 import courseProgressRoute from "./courseProgress/courseProgress.route.js";
 import enrollmentRoute from "./enrollment/enrollment.route.js";
+import lectureRoute from "./lecture/lecture.route.js";
+import { globalLimiter } from "./middleware/rateLimit.js";
+import userRoute from './user/user.route.js';
+import userFormRoutes from "./userForm/userForm.route.js";
 
 
 dotenv.config();
@@ -22,14 +22,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(globalLimiter);
 
-
-// Database connection
-await connectDB();
-
 // Swagger route
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-
 
 // API Routes
 app.use("/api/v1/user", userRoute);
@@ -44,8 +38,26 @@ app.get("/", (_, res) => {
     res.send("API is working and PostgreSQL Connected ✅");
 });
 
-// Start server
-app.listen(PORT, () => {
-    console.log(`Server is running at http://localhost:${PORT}`);
-    console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
-});
+// Initialize server
+async function startServer() {
+    try {
+        // Database connection
+        await connectDB();
+
+        // Start server only in non-serverless environment
+        if (process.env.VERCEL !== '1') {
+            app.listen(PORT, () => {
+                console.log(`Server is running at http://localhost:${PORT}`);
+                console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
+            });
+        }
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
+
+// Export for Vercel serverless
+export default app;
