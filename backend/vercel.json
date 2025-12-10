@@ -1,14 +1,12 @@
 {
     "version": 2,
+    "env": {
+        "ARCJET_ENV": "production"
+    },
     "builds": [
         {
             "src": "server.js",
-            "use": "@vercel/node",
-            "config": {
-                "includeFiles": [
-                    "dist/**"
-                ]
-            }
+            "use": "@vercel/node"
         }
     ],
     "routes": [
