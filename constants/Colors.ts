@@ -1,43 +1,73 @@
-export const Palette = {
-  purple: '#9D68A0',
-  orchid: '#C15D9E',
-  pink: '#D6538F',
-  rose: '#DC517A', // Primary
-  coral: '#DD536A',
-  orange: '#DF5943',
-};
+const Palette = {
+  primary: '#6366F1', // Indigo 500 - Softer than 600
+  primaryDark: '#4338CA', // Indigo 700
+  primaryLight: '#818CF8', // Indigo 400
+  accent: '#06B6D4', // Cyan 500
 
-const tintColorLight = Palette.rose;
-const tintColorDark = '#fff';
+  background: '#F8FAFC', // Slate 50
+  surface: '#FFFFFF',
+
+  text: '#0F172A', // Slate 900
+  textSecondary: '#64748B', // Slate 500
+  textTertiary: '#94A3B8', // Slate 400
+
+  border: '#E2E8F0', // Slate 200
+
+  success: '#10B981', // Emerald 500
+  warning: '#F59E0B', // Amber 500
+  error: '#EF4444', // Red 500
+
+  // Dark Mode
+  darkBackground: '#0F172A', // Slate 900
+  darkSurface: '#1E293B', // Slate 800
+  darkBorder: '#334155', // Slate 700
+  darkText: '#F8FAFC', // Slate 50
+  darkTextSecondary: '#94A3B8', // Slate 400
+};
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#F5F7FA', // Keep background neutral for readability
-    tint: tintColorLight,
-    icon: Palette.purple,
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-    primary: Palette.rose,
-    secondary: '#E1E9FF', // Might need adjustment, but keeping blue-ish for contrast for now or maybe a very light pink? Let's stick to safe neutral or slight tint.
-    // secondary: '#FCEEF5', // Light pink background option
-    card: '#FFFFFF',
-    border: '#E6E8EB',
-    valid: Palette.orange, // Use orange for valid/highlight states if needed
+    text: Palette.text,
+    textSecondary: Palette.textSecondary,
+    background: Palette.background,
+    surface: Palette.surface,
+    tint: Palette.primary,
+    icon: Palette.textSecondary,
+    tabIconDefault: Palette.textTertiary,
+    tabIconSelected: Palette.primary,
+    primary: Palette.primary,
+    primaryForeground: '#FFFFFF',
+    secondary: Palette.surface,
+    border: Palette.border,
+    error: Palette.error,
+    success: Palette.success,
+    warning: Palette.warning,
+    card: Palette.surface,
+    shimmer: ['#E2E8F0', '#F1F5F9', '#E2E8F0'],
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#121212',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-    primary: Palette.rose,
-    secondary: '#1A2A4D',
-    card: '#1E1E1E',
-    border: '#2C2C2C',
+    text: Palette.darkText,
+    textSecondary: Palette.darkTextSecondary,
+    background: Palette.darkBackground,
+    surface: Palette.darkSurface,
+    tint: Palette.primaryLight,
+    icon: Palette.darkTextSecondary,
+    tabIconDefault: Palette.darkTextSecondary,
+    tabIconSelected: Palette.primaryLight,
+    primary: Palette.primary,
+    primaryForeground: '#FFFFFF',
+    secondary: Palette.darkSurface,
+    border: Palette.darkBorder,
+    error: Palette.error,
+    success: Palette.success,
+    warning: Palette.warning,
+    card: Palette.darkSurface,
+    shimmer: ['#1E293B', '#334155', '#1E293B'],
   },
-  gradient: [Palette.purple, Palette.rose, Palette.orange], // Helper for gradient components
+  gradient: {
+    primary: [Palette.primary, Palette.accent] as const,
+    card: ['#1E293B', '#0F172A'] as const, // Dark mode card gradient
+  }
 };
 
 export default Colors;

@@ -1,4 +1,5 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Audio } from 'expo-av'; // Import Audio
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import React, { useEffect, useState } from 'react';
@@ -44,8 +45,27 @@ export default function LecturePlayerScreen() {
 
     const player = useVideoPlayer(lecture?.videoUrl || '', (player) => {
         player.loop = false;
-        player.volume = 1;
+        player.volume = 1.0;
+        player.muted = false;
+        player.play(); // Auto-play when ready
     });
+
+    useEffect(() => {
+        // Enforce audio playback in silent mode
+        const enableAudio = async () => {
+            try {
+                await Audio.setAudioModeAsync({
+                    playsInSilentModeIOS: true,
+                    staysActiveInBackground: false,
+                    shouldDuckAndroid: true,
+                });
+                console.log('Audio mode set for video playback');
+            } catch (e) {
+                console.warn('Failed to set audio mode in player:', e);
+            }
+        };
+        enableAudio();
+    }, []);
 
     useEffect(() => {
         fetchLectureDetails();
@@ -75,11 +95,11 @@ export default function LecturePlayerScreen() {
             // Fetch lectures from course to get full details
             const lecturesRes = await api.get(`/api/v1/video/${courseId}/lecture`);
             console.log('Lectures response:', lecturesRes.data);
-            
+
             const lecturesData = lecturesRes.data?.lectures || lecturesRes.data || [];
-            
+
             const foundLecture = lecturesData.find((l: any) => l.id.toString() === lectureId);
-            
+
             if (!foundLecture) {
                 console.warn('Lecture not found in list. Available lectures:', lecturesData.map((l: any) => l.id));
                 throw new Error(`Lecture ${lectureId} not found in course lectures`);
@@ -161,7 +181,7 @@ export default function LecturePlayerScreen() {
         const hrs = Math.floor(seconds / 3600);
         const mins = Math.floor((seconds % 3600) / 60);
         const secs = Math.floor(seconds % 60);
-        return hrs > 0 
+        return hrs > 0
             ? `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
             : `${mins}:${secs.toString().padStart(2, '0')}`;
     };
@@ -203,201 +223,80 @@ export default function LecturePlayerScreen() {
     return (
         <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={() => router.back()}>
-                        <FontAwesome name="arrow-left" size={24} color={theme.primary} />
-                    </TouchableOpacity>
-                    <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-                        Lecture
-                    </Text>
-                    <View style={{ width: 24 }} />
-                </View>
-
-                {/* Video Player */}
-                {lecture.videoUrl ? (
-                    <View style={styles.videoContainer}>
+                {/* Video Player Area */}
+                <View style={styles.videoWrapper}>
+                    {lecture.videoUrl ? (
                         <VideoView
                             style={styles.video}
                             player={player}
                             allowsFullscreen
                             allowsPictureInPicture
                             nativeControls={true}
+                            contentFit="contain"
                         />
-
-                        {/* Custom Controls */}
-                        <View style={[styles.controlsContainer, { backgroundColor: theme.card }]}>
-                            {/* Progress Bar */}
-                            <View style={styles.progressBarContainer}>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.progressBar,
-                                        { backgroundColor: `${theme.primary}33` },
-                                    ]}
-                                    onPress={(event) => {
-                                        const { locationX } = event.nativeEvent;
-                                        const percentage = locationX / (width - 32);
-                                        const newTime = percentage * duration;
-                                        handleSeek(newTime);
-                                    }}
-                                >
-                                    <View
-                                        style={[
-                                            styles.progressFill,
-                                            {
-                                                width: `${(currentTime / duration) * 100 || 0}%`,
-                                                backgroundColor: theme.primary,
-                                            },
-                                        ]}
-                                    />
-                                </TouchableOpacity>
-                            </View>
-
-                            {/* Play Controls */}
-                            <View style={styles.playerControls}>
-                                <TouchableOpacity
-                                    style={[styles.controlButton, { backgroundColor: theme.primary }]}
-                                    onPress={handlePlayPause}
-                                >
-                                    <FontAwesome
-                                        name={isPlaying ? 'pause' : 'play'}
-                                        size={24}
-                                        color="white"
-                                    />
-                                </TouchableOpacity>
-
-                                <View style={styles.timeDisplay}>
-                                    <Text style={[styles.timeText, { color: theme.text }]}>
-                                        {formatTime(currentTime)} / {formatTime(duration)}
-                                    </Text>
-                                </View>
-
-                                <TouchableOpacity
-                                    style={[
-                                        styles.controlButton,
-                                        {
-                                            backgroundColor: isCompleted ? theme.primary : `${theme.primary}33`,
-                                        },
-                                    ]}
-                                    onPress={handleMarkComplete}
-                                >
-                                    <FontAwesome
-                                        name={isCompleted ? 'check' : 'circle-o'}
-                                        size={24}
-                                        color={isCompleted ? 'white' : theme.primary}
-                                    />
-                                </TouchableOpacity>
-                            </View>
-
-                            {/* Time Info */}
-                            <View style={styles.timeInfo}>
-                                <Text style={[styles.timeLabel, { color: theme.icon }]}>
-                                    Duration: {formatTime(duration)}
-                                </Text>
-                            </View>
-                        </View>
-                    </View>
-                ) : (
-                    <View style={[styles.videoPlaceholder, { backgroundColor: theme.card }]}>
-                        <FontAwesome name="lock" size={64} color={theme.icon} />
-                        <Text style={[styles.videoText, { color: theme.text }]}>
-                            Video Not Available
-                        </Text>
-                        {!lecture.isPreviewFree && (
-                            <Text style={[styles.previewText, { color: theme.icon }]}>
-                                Please enroll to access this lecture
+                    ) : (
+                        <View style={[styles.videoPlaceholder, { backgroundColor: theme.card }]}>
+                            <FontAwesome name="lock" size={48} color={theme.textSecondary} />
+                            <Text style={[styles.videoText, { color: theme.text }]}>
+                                Content Locked
                             </Text>
-                        )}
-                    </View>
-                )}
+                            {!lecture.isPreviewFree && (
+                                <Text style={[styles.previewText, { color: theme.textSecondary }]}>
+                                    Enroll in this course to watch.
+                                </Text>
+                            )}
+                        </View>
+                    )}
+                </View>
 
                 {/* Content Section */}
                 <View style={styles.content}>
-                    <Text style={[styles.lectureTitle, { color: theme.text }]}>
-                        {lecture.lectureTitle}
-                    </Text>
-
-                    {/* Actions */}
-                    <View style={styles.actionsContainer}>
-                        <TouchableOpacity
-                            style={[styles.actionButton, { backgroundColor: theme.primary }]}
-                            onPress={handlePlayPause}
-                        >
-                            <FontAwesome name={isPlaying ? 'pause' : 'play'} size={18} color="white" />
-                            <Text style={styles.actionButtonText}>
-                                {isPlaying ? 'Pause' : 'Play'}
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[
-                                styles.actionButton,
-                                {
-                                    backgroundColor: isCompleted ? theme.primary : theme.card,
-                                    borderWidth: isCompleted ? 0 : 1,
-                                    borderColor: theme.primary,
-                                },
-                            ]}
-                            onPress={handleMarkComplete}
-                        >
-                            <FontAwesome
-                                name={isCompleted ? 'check-circle' : 'circle-o'}
-                                size={18}
-                                color={isCompleted ? 'white' : theme.primary}
-                            />
-                            <Text
-                                style={[
-                                    styles.actionButtonText,
-                                    { color: isCompleted ? 'white' : theme.primary },
-                                ]}
-                            >
-                                {isCompleted ? 'Completed' : 'Mark Complete'}
-                            </Text>
-                        </TouchableOpacity>
+                    <View style={styles.titleRow}>
+                        <Text style={[styles.lectureTitle, { color: theme.text }]}>
+                            {lecture.lectureTitle}
+                        </Text>
+                        {lecture.isPreviewFree && (
+                            <View style={[styles.badge, { backgroundColor: theme.primary + '20' }]}>
+                                <Text style={[styles.badgeText, { color: theme.primary }]}>Preview</Text>
+                            </View>
+                        )}
                     </View>
 
-                    {/* Status Badges */}
-                    {lecture.isPreviewFree && (
-                        <View style={[styles.badge, { backgroundColor: 'rgba(76, 175, 80, 0.1)' }]}>
-                            <FontAwesome name="eye" size={16} color="#4CAF50" />
-                            <Text style={[styles.badgeText, { color: '#4CAF50' }]}>
-                                Preview Available
-                            </Text>
-                        </View>
-                    )}
+                    {/* Primary Action: Mark Complete */}
+                    <TouchableOpacity
+                        style={[
+                            styles.completeButton,
+                            {
+                                backgroundColor: isCompleted ? theme.success : theme.primary,
+                                shadowColor: isCompleted ? theme.success : theme.primary,
+                            },
+                        ]}
+                        onPress={handleMarkComplete}
+                        activeOpacity={0.8}
+                    >
+                        <FontAwesome
+                            name={isCompleted ? 'check' : 'circle-o'}
+                            size={20}
+                            color="white"
+                        />
+                        <Text style={styles.completeButtonText}>
+                            {isCompleted ? 'Completed' : 'Mark as Complete'}
+                        </Text>
+                    </TouchableOpacity>
 
                     {isCompleted && (
-                        <View style={[styles.completedBanner, { backgroundColor: 'rgba(76, 175, 80, 0.1)' }]}>
-                            <FontAwesome name="check" size={20} color="#4CAF50" />
-                            <Text style={[styles.completedText, { color: '#4CAF50' }]}>
-                                You've completed this lecture
-                            </Text>
-                        </View>
+                        <Text style={[styles.congratsText, { color: theme.textSecondary }]}>
+                            Great job! You've finished this lecture.
+                        </Text>
                     )}
 
-                    {lecture.videoUrl && (
-                        <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
-                            <FontAwesome name="video-camera" size={16} color={theme.primary} />
-                            <View style={styles.infoContent}>
-                                <Text style={[styles.infoLabel, { color: theme.icon }]}>Video Info</Text>
-                                <Text style={[styles.infoValue, { color: theme.text }]}>
-                                    Ready for streaming
-                                </Text>
-                            </View>
-                        </View>
-                    )}
+                    <View style={styles.divider} />
 
-                    {lecture.publicId && (
-                        <View style={[styles.infoCard, { backgroundColor: theme.card }]}>
-                            <FontAwesome name="cloud" size={16} color={theme.primary} />
-                            <View style={styles.infoContent}>
-                                <Text style={[styles.infoLabel, { color: theme.icon }]}>Media ID</Text>
-                                <Text style={[styles.infoValue, { color: theme.text }]} numberOfLines={1}>
-                                    {lecture.publicId}
-                                </Text>
-                            </View>
-                        </View>
-                    )}
+                    {/* Lecture Details / Description placeholder */}
+                    <Text style={[styles.sectionHeader, { color: theme.text }]}>Description</Text>
+                    <Text style={[styles.description, { color: theme.textSecondary }]}>
+                        No additional notes for this lecture. Focus on the video content above.
+                    </Text>
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -417,180 +316,128 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingVertical: 16,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 20,
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: '600',
         flex: 1,
         textAlign: 'center',
     },
-    videoContainer: {
-        marginHorizontal: 16,
-        marginVertical: 16,
-        borderRadius: 12,
-        overflow: 'hidden',
+    videoWrapper: {
+        width: '100%',
+        aspectRatio: 16 / 9,
+        backgroundColor: '#000',
     },
     video: {
         width: '100%',
-        height: videoHeight,
-    },
-    controlsContainer: {
-        padding: 16,
-        borderRadius: 12,
-        marginTop: 8,
-    },
-    progressBarContainer: {
-        marginBottom: 16,
-    },
-    progressBar: {
-        height: 4,
-        borderRadius: 2,
-        overflow: 'hidden',
-    },
-    progressFill: {
         height: '100%',
-        borderRadius: 2,
-    },
-    playerControls: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 12,
-    },
-    controlButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    timeDisplay: {
-        flex: 1,
-        alignItems: 'center',
-    },
-    timeText: {
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    timeInfo: {
-        alignItems: 'center',
-    },
-    timeLabel: {
-        fontSize: 12,
     },
     videoPlaceholder: {
-        marginHorizontal: 16,
-        marginVertical: 16,
-        borderRadius: 12,
-        height: 240,
+        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 16,
+        padding: 20,
     },
     videoText: {
-        fontSize: 14,
+        fontSize: 16,
         fontWeight: '600',
-        marginTop: 12,
-        textAlign: 'center',
+        marginTop: 16,
     },
     previewText: {
-        fontSize: 12,
+        fontSize: 14,
         marginTop: 8,
-        textAlign: 'center',
     },
     content: {
-        padding: 16,
+        padding: 24,
+    },
+    titleRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 24,
     },
     lectureTitle: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: 'bold',
-        marginBottom: 16,
-    },
-    actionsContainer: {
-        flexDirection: 'row',
-        gap: 12,
-        marginBottom: 16,
-    },
-    actionButton: {
         flex: 1,
+        marginRight: 16,
+        lineHeight: 32,
+    },
+    badge: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 100,
+    },
+    badgeText: {
+        fontSize: 12,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+    },
+    completeButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12,
-        borderRadius: 8,
-        gap: 8,
+        paddingVertical: 16,
+        borderRadius: 16,
+        gap: 12,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+        marginBottom: 16,
     },
-    actionButtonText: {
-        fontWeight: '600',
-        fontSize: 14,
+    completeButtonText: {
         color: 'white',
+        fontSize: 16,
+        fontWeight: '700',
     },
-    badge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 8,
-        marginBottom: 12,
-        gap: 8,
-        alignSelf: 'flex-start',
-    },
-    badgeText: {
-        fontWeight: '600',
-        fontSize: 13,
-    },
-    infoCard: {
-        flexDirection: 'row',
-        padding: 12,
-        borderRadius: 8,
-        marginBottom: 12,
-        alignItems: 'center',
-        gap: 12,
-    },
-    infoContent: {
-        flex: 1,
-    },
-    infoLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    infoValue: {
-        fontSize: 13,
-    },
-    completedBanner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 16,
-        borderRadius: 8,
-        marginTop: 12,
-        gap: 12,
-    },
-    completedText: {
-        fontWeight: '600',
+    congratsText: {
+        textAlign: 'center',
+        marginBottom: 24,
         fontSize: 14,
     },
+    divider: {
+        height: 1,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        marginVertical: 24,
+    },
+    sectionHeader: {
+        fontSize: 18,
+        fontWeight: '700',
+        marginBottom: 12,
+    },
+    description: {
+        fontSize: 15,
+        lineHeight: 24,
+    },
+    // Error states
     errorContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 16,
+        padding: 24,
     },
     errorText: {
         fontSize: 16,
-        marginVertical: 16,
+        marginTop: 16,
         textAlign: 'center',
+        marginBottom: 24,
     },
     button: {
         paddingHorizontal: 24,
         paddingVertical: 12,
-        borderRadius: 8,
-        marginTop: 16,
+        borderRadius: 12,
     },
     buttonText: {
         color: 'white',
         fontWeight: '600',
-        fontSize: 14,
     },
 });

@@ -2,20 +2,21 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useColorScheme } from '../../components/useColorScheme';
 import { Colors } from '../../constants/Colors';
+import { useTheme } from '../../context/ThemeContext';
 import api from '../../utils/api';
 
 export default function ProfileScreen() {
-    const colorScheme = useColorScheme();
-    const theme = Colors[colorScheme ?? 'light'];
+    const { theme, toggleTheme, isDark } = useTheme();
+    const colors = Colors[theme];
     const router = useRouter();
     const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
         const fetchProfile = async () => {
+            // ... existing data fetching
             try {
                 const { data } = await api.get('/api/v1/user/profile');
                 setUser(data.user || data);
@@ -28,10 +29,8 @@ export default function ProfileScreen() {
 
     const handleLogout = async () => {
         try {
-            // Optional: Call logout endpoint if exists (it does in swagger: /api/v1/user/logout)
             await api.get('/api/v1/user/logout');
         } catch (e) {
-            // Ignore error on logout
             console.log("Logout api error", e);
         } finally {
             await SecureStore.deleteItemAsync('authToken');
@@ -39,40 +38,55 @@ export default function ProfileScreen() {
         }
     };
 
-    const Option = ({ icon, label, color, isDestructive, rightElement }: any) => (
-        <TouchableOpacity style={[styles.option, { backgroundColor: theme.card, borderColor: theme.border }]}>
+    const Option = ({ icon, label, rightElement, onPress }: any) => (
+        <TouchableOpacity
+            style={[styles.option, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={onPress}
+            activeOpacity={onPress ? 0.7 : 1}
+        >
             <View style={styles.optionLeft}>
-                <View style={[styles.iconContainer, { backgroundColor: isDestructive ? '#FDD' : theme.secondary }]}>
-                    <FontAwesome name={icon} size={20} color={isDestructive ? 'red' : theme.primary} />
+                <View style={[styles.iconContainer, { backgroundColor: colors.secondary }]}>
+                    <FontAwesome name={icon} size={20} color={colors.primary} />
                 </View>
-                <Text style={[styles.optionLabel, { color: isDestructive ? 'red' : theme.text }]}>{label}</Text>
+                <Text style={[styles.optionLabel, { color: colors.text }]}>{label}</Text>
             </View>
-            {rightElement || <FontAwesome name="angle-right" size={20} color={theme.icon} />}
+            {rightElement || <FontAwesome name="angle-right" size={20} color={colors.icon} />}
         </TouchableOpacity>
     );
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <View style={styles.header}>
-                    <View style={[styles.avatar, { borderColor: theme.primary }]}>
+                    <View style={[styles.avatar, { borderColor: colors.primary }]}>
                         <Text style={styles.avatarText}>
                             {user?.name?.charAt(0).toUpperCase() || 'U'}
                         </Text>
                     </View>
-                    <Text style={[styles.name, { color: theme.text }]}>{user?.name || 'User'}</Text>
-                    <Text style={[styles.email, { color: theme.icon }]}>{user?.email || 'email@example.com'}</Text>
+                    <Text style={[styles.name, { color: colors.text }]}>{user?.name || 'User'}</Text>
+                    <Text style={[styles.email, { color: colors.icon }]}>{user?.email || 'email@example.com'}</Text>
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Settings</Text>
-                    <Option icon="moon-o" label="Dark Mode" rightElement={<Text style={{ color: theme.icon }}>System</Text>} />
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Settings</Text>
+                    <Option
+                        icon={isDark ? "moon-o" : "sun-o"}
+                        label={isDark ? "Dark Mode" : "Light Mode"}
+                        rightElement={
+                            <Switch
+                                value={isDark}
+                                onValueChange={toggleTheme}
+                                trackColor={{ false: '#767577', true: colors.primary }}
+                                thumbColor={isDark ? '#fff' : '#f4f3f4'}
+                            />
+                        }
+                    />
                     <Option icon="bell-o" label="Notifications" />
                     <Option icon="lock" label="Privacy & Security" />
                 </View>
 
                 <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: theme.text }]}>Support</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Support</Text>
                     <Option icon="question-circle-o" label="Help Center" />
                     <Option icon="info-circle" label="About LMS" />
                 </View>

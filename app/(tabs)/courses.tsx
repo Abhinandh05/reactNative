@@ -55,7 +55,7 @@ export default function CoursesScreen() {
             setAllCourses(Array.isArray(courses) ? courses : []);
         } catch (error: any) {
             console.error('Error fetching courses:', error.response?.data || error.message);
-            
+
             if (error.response?.status === 404) {
                 setAllCourses([]);
             } else {
@@ -76,21 +76,23 @@ export default function CoursesScreen() {
         // Filter by search query
         if (searchQuery.trim()) {
             filtered = filtered.filter((course) =>
-                course.course_title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                course.course_title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 course.creator?.name?.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
 
-        // Filter by course type
-        if (activeFilter !== 'all') {
-            filtered = filtered.filter((course) => course.course_type === activeFilter);
+        // Filter by course price
+        if (activeFilter === 'free') {
+            filtered = filtered.filter((course) => Number(course.course_price) === 0);
+        } else if (activeFilter === 'paid') {
+            filtered = filtered.filter((course) => Number(course.course_price) > 0);
         }
 
         setFilteredCourses(filtered);
     };
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
             <View style={styles.header}>
                 <Text style={[styles.headerTitle, { color: theme.primary }]}>Explore Courses</Text>
             </View>
@@ -108,35 +110,42 @@ export default function CoursesScreen() {
             </View>
 
             {/* Filters */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterContainer}>
-                {[
-                    { label: 'All', value: 'all' as const },
-                    { label: 'Free', value: 'free' as const },
-                    { label: 'Paid', value: 'paid' as const },
-                ].map((filter) => (
-                    <TouchableOpacity
-                        key={filter.value}
-                        style={[
-                            styles.filterButton,
-                            activeFilter === filter.value
-                                ? { backgroundColor: theme.primary }
-                                : { backgroundColor: theme.card, borderColor: theme.primary, borderWidth: 1 },
-                        ]}
-                        onPress={() => setActiveFilter(filter.value)}
-                    >
-                        <Text
+            <View style={{ height: 60 }}>
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ paddingHorizontal: 16 }}
+                    style={styles.filterContainer}
+                >
+                    {[
+                        { label: 'All', value: 'all' as const },
+                        { label: 'Free', value: 'free' as const },
+                        { label: 'Paid', value: 'paid' as const },
+                    ].map((filter) => (
+                        <TouchableOpacity
+                            key={filter.value}
                             style={[
-                                styles.filterText,
-                                {
-                                    color: activeFilter === filter.value ? 'white' : theme.primary,
-                                },
+                                styles.filterButton,
+                                activeFilter === filter.value
+                                    ? { backgroundColor: theme.primary, borderWidth: 0 }
+                                    : { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 },
                             ]}
+                            onPress={() => setActiveFilter(filter.value)}
                         >
-                            {filter.label}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
+                            <Text
+                                style={[
+                                    styles.filterText,
+                                    {
+                                        color: activeFilter === filter.value ? '#FFFFFF' : theme.textSecondary,
+                                    },
+                                ]}
+                            >
+                                {filter.label}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </ScrollView>
+            </View>
 
             {/* Courses List */}
             {loading ? (
@@ -158,14 +167,6 @@ export default function CoursesScreen() {
                     )}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <FontAwesome name="inbox" size={48} color={theme.icon} />
-                            <Text style={[styles.emptyText, { color: theme.text }]}>
-                                No courses found
-                            </Text>
-                        </View>
-                    }
                 />
             ) : (
                 <View style={styles.emptyContainer}>
@@ -211,14 +212,14 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     filterContainer: {
+        marginBottom: 16,
         paddingHorizontal: 16,
-        marginBottom: 12,
     },
     filterButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        marginRight: 8,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 100,
+        marginRight: 10,
     },
     filterText: {
         fontWeight: '600',

@@ -96,7 +96,7 @@ export default function LoginScreen() {
                 style={styles.content}
             >
                 <View style={styles.header}>
-                    <Text style={[styles.title, { color: theme.primary }]}>LMS App</Text>
+                    <Text style={[styles.title, { color: theme.primary }]}>StackUp</Text>
                     <Text style={[styles.subtitle, { color: theme.text }]}>Welcome back!</Text>
                 </View>
 

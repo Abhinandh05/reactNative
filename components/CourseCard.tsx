@@ -1,4 +1,4 @@
-import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Link } from 'expo-router';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View, ViewStyle } from 'react-native';
@@ -12,41 +12,64 @@ interface CourseCardProps {
     image: any; // source
     progress?: number;
     rating?: number;
+    price?: number;
+    reviews?: number;
     style?: ViewStyle;
 }
 
-export function CourseCard({ id, title, author, image, progress, rating = 4.5, style }: CourseCardProps) {
+export function CourseCard({
+    id,
+    title,
+    author,
+    image,
+    progress,
+    rating = 4.8,
+    price = 49.99,
+    reviews = 120,
+    style
+}: CourseCardProps) {
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme ?? 'light'];
+    const gradients = Colors.gradient;
 
     return (
         <Link href={`/course-detail?courseId=${id}`} asChild>
-            <TouchableOpacity activeOpacity={0.8} style={[styles.container, style]}>
-                <View style={styles.imageContainer}>
+            <TouchableOpacity activeOpacity={0.9} style={[styles.container, styles.shadow, { backgroundColor: theme.card }, style]}>
+                <View style={styles.imageWrapper}>
                     <Image source={image} style={styles.image} resizeMode="cover" />
+                    <LinearGradient
+                        colors={['transparent', 'rgba(0,0,0,0.6)']}
+                        style={StyleSheet.absoluteFill}
+                    />
                     {progress !== undefined && (
                         <View style={styles.badgeContainer}>
-                            <BlurView intensity={60} tint="dark" style={styles.badge}>
-                                <Text style={styles.badgeText}>{progress}% Complete</Text>
-                            </BlurView>
+                            <View style={[styles.badge, { backgroundColor: theme.primary }]}>
+                                <Text style={styles.badgeText}>{progress}% Completed</Text>
+                            </View>
                         </View>
                     )}
                 </View>
 
-                <View style={[styles.content, { backgroundColor: theme.card }]}>
+                <View style={styles.content}>
+                    <Text style={[styles.category, { color: theme.primary }]}>Development</Text>
                     <Text style={[styles.title, { color: theme.text }]} numberOfLines={2}>{title}</Text>
-                    <Text style={[styles.author, { color: theme.icon }]}>{author}</Text>
+                    <Text style={[styles.author, { color: theme.textSecondary }]}>By {author}</Text>
 
                     {progress === undefined ? (
-                        <View style={styles.metaRow}>
-                            <Text style={[styles.rating, { color: '#E59819' }]}>{rating} ★★★★★</Text>
-                            <Text style={[styles.reviews, { color: theme.icon }]}> (1,240)</Text>
-                            <Text style={[styles.price, { color: theme.text }]}>$19.99</Text>
+                        <View style={styles.footer}>
+                            <View style={styles.ratingContainer}>
+                                <Text style={[styles.star, { color: theme.warning }]}>★</Text>
+                                <Text style={[styles.rating, { color: theme.text }]}>{rating}</Text>
+                                <Text style={[styles.reviews, { color: theme.textSecondary }]}>({reviews})</Text>
+                            </View>
+                            <Text style={[styles.price, { color: theme.primary }]}>${price}</Text>
                         </View>
                     ) : (
-                        <View style={styles.progressBarContainer}>
-                            <View style={[styles.progressBar, { width: `${progress}%`, backgroundColor: theme.primary }]} />
-                            <View style={[styles.progressBarTrack, { backgroundColor: theme.border }]} />
+                        <View style={styles.progressContainer}>
+                            <View style={[styles.progressBarTrack, { backgroundColor: theme.border }]}>
+                                <View style={[styles.progressBarFill, { width: `${progress}%`, backgroundColor: theme.success }]} />
+                            </View>
+                            <Text style={[styles.progressText, { color: theme.textSecondary }]}>{progress}%</Text>
                         </View>
                     )}
                 </View>
@@ -58,16 +81,20 @@ export function CourseCard({ id, title, author, image, progress, rating = 4.5, s
 const styles = StyleSheet.create({
     container: {
         borderRadius: 16,
+        marginBottom: 20,
         overflow: 'hidden',
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        borderWidth: 1,
+        borderColor: 'rgba(0,0,0,0.05)',
     },
-    imageContainer: {
-        height: 160,
+    shadow: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05, // Much softer
+        shadowRadius: 15, // More spread
+        elevation: 3,
+    },
+    imageWrapper: {
+        height: 180,
         width: '100%',
         position: 'relative',
     },
@@ -81,65 +108,79 @@ const styles = StyleSheet.create({
         right: 12,
     },
     badge: {
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        borderRadius: 8,
-        overflow: 'hidden',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 100,
     },
     badgeText: {
         color: '#fff',
         fontSize: 12,
-        fontWeight: 'bold',
+        fontWeight: '600',
     },
     content: {
-        padding: 16,
+        padding: 20, // Increased from 16
+    },
+    category: {
+        fontSize: 12,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 10, // Increased spacing
     },
     title: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: '700',
-        marginBottom: 4,
-        lineHeight: 22,
+        marginBottom: 10,
+        lineHeight: 28, // Better line height
     },
     author: {
         fontSize: 14,
-        marginBottom: 12,
+        marginBottom: 20, // More breathing room
     },
-    progressBarContainer: {
-        height: 6,
-        width: '100%',
-        borderRadius: 3,
-        position: 'relative',
+    footer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 'auto',
     },
-    progressBarTrack: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        borderRadius: 3,
-        opacity: 0.3,
+    ratingContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
-    progressBar: {
-        height: '100%',
-        borderRadius: 3,
-        zIndex: 1,
+    star: {
+        fontSize: 16,
+        marginRight: 4,
     },
-    metaRow: {
+    rating: {
+        fontSize: 14,
+        fontWeight: '700',
+        marginRight: 4,
+    },
+    reviews: {
+        fontSize: 14,
+    },
+    price: {
+        fontSize: 18,
+        fontWeight: '700',
+    },
+    progressContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: 4,
     },
-    rating: {
-        fontSize: 12,
-        fontWeight: 'bold',
+    progressBarTrack: {
+        flex: 1,
+        height: 6,
+        borderRadius: 3,
+        overflow: 'hidden',
+        marginRight: 12,
     },
-    reviews: {
-        fontSize: 12,
-        marginRight: 8,
+    progressBarFill: {
+        height: '100%',
+        borderRadius: 3,
     },
-    price: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        marginLeft: 'auto',
+    progressText: {
+        fontSize: 12,
+        fontWeight: '600',
     },
 });
