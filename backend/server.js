@@ -16,11 +16,41 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isVercel = process.env.VERCEL === '1';
 
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
 app.use(globalLimiter);
+
+// Lazy database connection for serverless
+let dbConnected = false;
+const ensureDbConnection = async () => {
+    if (!dbConnected) {
+        try {
+            await connectDB();
+            dbConnected = true;
+        } catch (error) {
+            console.error('Database connection failed:', error);
+            throw error;
+        }
+    }
+};
+
+// Database connection middleware - connects on first request
+app.use(async (req, res, next) => {
+    try {
+        await ensureDbConnection();
+        next();
+    } catch (error) {
+        console.error('Database middleware error:', error);
+        res.status(503).json({
+            success: false,
+            message: 'Database connection unavailable',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
 
 // Swagger route
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -38,26 +68,28 @@ app.get("/", (_, res) => {
     res.send("API is working and PostgreSQL Connected ✅");
 });
 
-// Initialize server
-async function startServer() {
-    try {
-        // Database connection
-        await connectDB();
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+});
 
-        // Start server only in non-serverless environment
-        if (process.env.VERCEL !== '1') {
-            app.listen(PORT, () => {
-                console.log(`Server is running at http://localhost:${PORT}`);
-                console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
-            });
-        }
-    } catch (error) {
+// Start server only in non-serverless environment
+if (!isVercel) {
+    ensureDbConnection().then(() => {
+        app.listen(PORT, () => {
+            console.log(`Server is running at http://localhost:${PORT}`);
+            console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
+        });
+    }).catch((error) => {
         console.error('Failed to start server:', error);
         process.exit(1);
-    }
+    });
 }
-
-startServer();
 
 // Export for Vercel serverless
 export default app;
